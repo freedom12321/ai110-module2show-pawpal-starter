@@ -7,6 +7,58 @@
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
 
+- 1) Set Up Pet + Owner Profile
+
+     The user enters basic information about the owner and pet.
+
+- 2) Add / Edit Care Tasks
+
+     The user creates pet care tasks such as feeding, walking, medication, grooming, enrichment, etc.
+
+- 3) Generate Daily Care Plan
+
+     The app sorts and selects tasks based on constraints, then creates a daily schedule.
+
+# PawPal+ Main Objects
+
+## Owner
+
+**Attributes:** `name`, `available_time`, `preferences`
+**Methods:** `update_profile()`, `get_availability()`
+
+## Pet
+
+**Attributes:** `name`, `species`, `breed`, `age`, `energy_level`
+**Methods:** `update_pet_info()`, `get_pet_summary()`
+
+## CareTask
+
+**Attributes:** `name`, `duration`, `priority`, `category`, `required`
+**Methods:** `update_task()`, `get_task_summary()`
+
+## TaskManager
+
+**Attributes:** `tasks`
+**Methods:** `add_task()`, `edit_task()`, `delete_task()`, `get_tasks()`
+
+## Scheduler
+
+**Attributes:** `tasks`, `available_time`, `scheduled_tasks`, `skipped_tasks`
+**Methods:** `sort_tasks()`, `generate_plan()`, `explain_plan()`
+
+## DailyPlan
+
+**Attributes:** `scheduled_tasks`, `skipped_tasks`, `total_time_used`
+**Methods:** `display_plan()`, `show_skipped_tasks()`, `get_summary()`
+
+# Core Actions
+
+1. Create owner and pet profile
+2. Add or edit care tasks
+3. Generate and explain the daily care plan
+
+
+
 **b. Design changes**
 
 - Did your design change during implementation?
