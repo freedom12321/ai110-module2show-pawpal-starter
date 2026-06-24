@@ -92,3 +92,42 @@ Describe your app in numbered steps so a reader can follow along without watchin
 5. <!-- Add more steps as needed -->
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+
+## Sample Output
+
+====================================================
+       PawPal+ — Today's Schedule
+====================================================
+Owner : Alex
+Pets  : Buddy, Luna
+Budget: 90 min available
+----------------------------------------------------
+
+Scheduled Tasks:
+  [REQUIRED]   Breakfast              5 min  (feeding)
+  [REQUIRED]   Litter Box             5 min  (grooming)
+  [REQUIRED]   Breakfast             10 min  (feeding)
+  [REQUIRED]   Morning Walk          30 min  (walk)
+  [REQUIRED]   Flea Treatment         5 min  (medication)
+  [REQUIRED]   Hairball Meds          5 min  (medication)
+  [optional]   Laser Toy             15 min  (enrichment)
+
+  Total time used: 75 min / 90 min
+
+Skipped (not enough time):
+  - Fetch / Play (20 min)
+
+----------------------------------------------------
+Plan for Alex  (90 min available)
+
+Scheduled tasks:
+  - [Pending] Breakfast (feeding) | 5 min | Priority: HIGH | Required: True | Frequency: daily
+  - [Pending] Litter Box (grooming) | 5 min | Priority: HIGH | Required: True | Frequency: daily
+  - [Pending] Breakfast (feeding) | 10 min | Priority: HIGH | Required: True | Frequency: daily
+  - [Pending] Morning Walk (walk) | 30 min | Priority: HIGH | Required: True | Frequency: daily
+  - [Pending] Flea Treatment (medication) | 5 min | Priority: MEDIUM | Required: True | Frequency: weekly
+  - [Pending] Hairball Meds (medication) | 5 min | Priority: MEDIUM | Required: True | Frequency: weekly
+  - [Pending] Laser Toy (enrichment) | 15 min | Priority: LOW | Required: False | Frequency: daily
+
+Skipped (not enough time remaining):
+  - [Pending] Fetch / Play (enrichment) | 20 min | Priority: LOW | Required: False | Frequency: daily
