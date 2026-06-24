@@ -1,0 +1,63 @@
+classDiagram
+    class Owner {
+        +String name
+        +int available_time
+        +List preferences
+        +update_profile()
+        +get_availability() int
+    }
+
+    class Pet {
+        +String name
+        +String species
+        +String breed
+        +int age
+        +String energy_level
+        +update_pet_info()
+        +get_pet_summary() String
+    }
+
+    class CareTask {
+        +String name
+        +int duration
+        +int priority
+        +String category
+        +bool required
+        +update_task()
+        +get_task_summary() String
+    }
+
+    class TaskManager {
+        +List tasks
+        +add_task(task: CareTask)
+        +edit_task(task: CareTask)
+        +delete_task(task: CareTask)
+        +get_tasks() List
+    }
+
+    class Scheduler {
+        +List tasks
+        +int available_time
+        +List scheduled_tasks
+        +List skipped_tasks
+        +sort_tasks()
+        +generate_plan() DailyPlan
+        +explain_plan() String
+    }
+
+    class DailyPlan {
+        +List scheduled_tasks
+        +List skipped_tasks
+        +int total_time_used
+        +display_plan()
+        +show_skipped_tasks()
+        +get_summary() String
+    }
+
+    Owner "1" --> "1..*" Pet : owns
+    Owner --> TaskManager : manages tasks via
+    TaskManager "1" --> "0..*" CareTask : stores
+    Scheduler --> TaskManager : reads from
+    Scheduler --> Owner : checks availability
+    Scheduler --> DailyPlan : generates
+    DailyPlan "1" --> "0..*" CareTask : contains
