@@ -56,19 +56,52 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
 
 ## 🧪 Testing PawPal+
 
+Run the full test suite from the project root:
+
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+python3 -m pytest tests/test_pawpal.py -v
 ```
 
-Sample test output:
+Run with coverage:
+
+```bash
+python3 -m pytest tests/test_pawpal.py -v --cov=pawpal_system --cov-report=term-missing
+```
+
+### What the tests cover
+
+| Area | Tests |
+|---|---|
+| **Task lifecycle** | Marking a task complete flips `completed` to `True`; adding tasks increments the pet's task count |
+| **Sorting correctness** | `sort_by_time()` returns tasks in ascending `start_time` order; ties are broken by shortest duration first |
+| **Recurrence logic** | A completed daily task's `get_next_occurrence()` returns a fresh copy with `next_due_date` set to the following day; `reschedule_completed_tasks()` removes the old task and appends the new one; `as-needed` tasks are removed without replacement |
+| **Conflict detection** | Same `start_time` triggers a warning; partial time-window overlap triggers a warning; adjacent tasks (end == start) do **not** trigger a warning |
+
+### Successful test run output
 
 ```
-# Paste your pytest output here
+============================= test session starts ==============================
+platform darwin -- Python 3.13.1, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/lihanxia/Documents/codepath /ai110-module2show-pawpal-starter
+collected 10 items
+
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [ 10%]
+tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [ 20%]
+tests/test_pawpal.py::test_sort_by_time_returns_chronological_order PASSED [ 30%]
+tests/test_pawpal.py::test_sort_by_time_tie_broken_by_shortest_duration PASSED [ 40%]
+tests/test_pawpal.py::test_get_next_occurrence_daily_advances_one_day PASSED [ 50%]
+tests/test_pawpal.py::test_reschedule_completed_tasks_replaces_daily_task PASSED [ 60%]
+tests/test_pawpal.py::test_as_needed_task_not_rescheduled PASSED         [ 70%]
+tests/test_pawpal.py::test_detect_conflicts_same_start_time PASSED       [ 80%]
+tests/test_pawpal.py::test_detect_conflicts_partial_overlap PASSED       [ 90%]
+tests/test_pawpal.py::test_detect_conflicts_adjacent_tasks_do_not_conflict PASSED [100%]
+
+============================== 10 passed in 0.01s ==============================
 ```
+
+### Confidence Level: ★★★★☆ (4/5)
+
+The core scheduling logic — sorting, conflict detection, and daily recurrence — is well-covered and all tests pass. One star is held back because `generate_plan()`'s greedy fit loop (the full end-to-end budget allocation) is not yet tested directly, and `is_due_today()` for the weekly branch (6-day vs. 7-day boundary) also has no test. Adding those two cases would bring confidence to 5/5.
 
 ## 📐 Smarter Scheduling
 
