@@ -1,4 +1,6 @@
 classDiagram
+    direction TB
+
     class Priority {
         <<enumeration>>
         HIGH = 1
@@ -33,8 +35,8 @@ classDiagram
         +int age
         +String energy_level
         +List~CareTask~ tasks
-        +add_task(task: CareTask)
-        +remove_task(task_name: String)
+        +add_task(task CareTask)
+        +remove_task(task_name String)
         +get_tasks(category, required_only) List
         +update_pet_info(kwargs)
         +get_pet_summary() String
@@ -45,7 +47,7 @@ classDiagram
         +int available_time
         +List~String~ preferences
         +List~Pet~ pets
-        +add_pet(pet: Pet)
+        +add_pet(pet Pet)
         +get_all_tasks(pet_name, exclude_completed) List
         +update_profile(name, available_time, preferences)
         +get_availability() int
@@ -76,11 +78,13 @@ classDiagram
         +get_summary() String
     }
 
-    %% Relationships
-    Owner "1" --> "1..*" Pet : owns
-    Pet "1" --> "0..*" CareTask : has
-    CareTask --> Priority : uses
-    Scheduler --> Owner : reads tasks and availability from
-    Scheduler --> DailyPlan : generates
-    DailyPlan --> Owner : references
+    %% ── Relationships ──────────────────────────────────────────────────
+    Owner "1" --> "1..*" Pet       : owns
+    Pet   "1" --> "0..*" CareTask  : has
+    CareTask   -->        Priority  : uses
+
+    Scheduler  -->        Owner     : reads tasks and availability from
+    Scheduler  -->        DailyPlan : generates
+
+    DailyPlan  -->        Owner     : references
     DailyPlan "1" --> "0..*" CareTask : contains
