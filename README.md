@@ -72,14 +72,163 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
+The scheduling logic lives in `pawpal_system.py` across five classes: `CareTask`, `Pet`, `Owner`, `DailyPlan`, and `Scheduler`.
 
-| Feature | Method(s) | Notes |
-|---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+### Feature overview
+
+| Feature | Method(s) | Where |
+|---|---|---|
+| Sort by priority | `Scheduler.sort_tasks()` | `Scheduler` |
+| Sort by start time | `Scheduler.sort_by_time()` | `Scheduler` |
+| Filter by status or pet | `Scheduler.filter_tasks()` | `Scheduler` |
+| Conflict detection | `Scheduler.detect_conflicts()` | `Scheduler` |
+| Recurrence check | `CareTask.is_due_today()` | `CareTask` |
+| Next occurrence | `CareTask.get_next_occurrence()` | `CareTask` |
+| Auto-reschedule | `Scheduler.reschedule_completed_tasks()` | `Scheduler` |
+
+---
+
+### Sorting
+
+#### `Scheduler.sort_tasks(tasks=None)`
+
+Sorts tasks using a 4-element tuple key so multiple criteria are applied in one pass:
+
+```
+key = (not required, priority int, time-slot order, duration)
+```
+
+| Position | Field | Logic |
+|---|---|---|
+| 1 | `required` | `not required` → `False < True`, required tasks rise to top |
+| 2 | `priority` | `Priority` is an `IntEnum`: `HIGH=1 < MEDIUM=2 < LOW=3` |
+| 3 | `preferred_time` | `morning=0, afternoon=1, evening=2, any=3` via `_TIME_SLOT_ORDER` |
+| 4 | `duration` | Shortest first — greedy heuristic to fit more tasks in the time budget |
+
+Used internally by `generate_plan()` before the greedy fit loop.
+
+#### `Scheduler.sort_by_time(tasks=None)`
+
+Sorts tasks chronologically by their `start_time` field (`"HH:MM"` string).
+
+```python
+sorted(tasks, key=lambda t: (t.start_time, t.duration))
+```
+
+Zero-padded `"HH:MM"` strings sort lexicographically in the same order as chronologically, so no date conversion is needed. Ties on start time are broken by shortest duration first. Used when displaying the task table in the UI with "Sort by: start time" selected.
+
+---
+
+### Filtering
+
+#### `Scheduler.filter_tasks(tasks, status=None, pet_name=None)`
+
+Returns a filtered view of a task list without mutating the original. Both filters are optional and can be combined.
+
+**Status filter** — implemented with a dict of lambda predicates:
+
+```python
+STATUS_PREDICATES = {
+    "pending":   lambda t: not t.completed,
+    "completed": lambda t: t.completed,
+}
+result = list(filter(STATUS_PREDICATES[status], tasks))
+```
+
+Using a dict of lambdas means adding a new status (e.g. `"overdue"`) requires one new entry, not a new `elif` branch.
+
+**Pet filter** — since `CareTask` has no back-reference to its pet, the method builds an identity set using `id()`:
+
+```python
+pet_task_ids = {id(task) for pet in owner.pets if pet.name == pet_name for task in pet.tasks}
+result = list(filter(lambda t: id(t) in pet_task_ids, result))
+```
+
+In `app.py`, both filters are applied before sorting so the sort only runs on the visible subset.
+
+---
+
+### Conflict Detection
+
+#### `Scheduler.detect_conflicts(tasks=None)`
+
+Checks every unique pair of tasks for time-window overlap. Returns a list of warning strings — never raises an exception.
+
+**Overlap test** (standard interval arithmetic):
+
+```python
+a_start = _hhmm_to_minutes(a.start_time)   # "09:15" → 555
+a_end   = a_start + a.duration
+
+# Two tasks conflict when:
+if a_start < b_end and b_start < a_end:
+    # overlap exists
+```
+
+This single condition covers all three overlap shapes:
+
+| Shape | Example |
+|---|---|
+| Partial overlap | A: 09:00–09:30, B: 09:15–09:45 |
+| One task contained inside another | A: 09:00–10:00, B: 09:15–09:30 |
+| Exact same start time | A: 09:00–09:20, B: 09:00–09:15 |
+
+Each warning message names the pet for both tasks so cross-pet conflicts are immediately visible:
+
+```
+CONFLICT: [Buddy] 'Morning Walk' 07:00–07:30  overlaps  [Buddy] 'Breakfast' 07:15–07:25
+```
+
+`generate_plan()` calls `detect_conflicts(self.scheduled_tasks)` automatically and appends any findings to `DailyPlan.warnings`, so warnings surface in both the CLI output and the Streamlit UI.
+
+Two helper functions support this method:
+
+- `_hhmm_to_minutes(hhmm)` — converts `"HH:MM"` → total minutes since midnight
+- `_minutes_to_hhmm(minutes)` — converts minutes back to `"HH:MM"` for readable end-times in warnings
+
+---
+
+### Recurring Tasks
+
+Three methods work together to handle daily and weekly recurrence.
+
+#### `CareTask.is_due_today(date)`
+
+Decides whether a task should appear in today's plan. Decision order — first matching branch wins:
+
+| Branch | Condition | Due when |
+|---|---|---|
+| Explicit next date | `next_due_date` is set | `next_due_date <= today` (catches overdue) |
+| Daily | `frequency == "daily"` | `last_completed_date != today` |
+| Weekly | `frequency == "weekly"` | Never completed, or last completion was 7+ days ago |
+| As-needed | `frequency == "as-needed"` | Always eligible |
+
+#### `CareTask.get_next_occurrence(completed_date)`
+
+Returns a fresh copy of the task scheduled for its next recurrence date, using Python's `timedelta`:
+
+```python
+base  = date.fromisoformat(completed_date)   # e.g. 2026-06-23
+delta = timedelta(days=1)   # daily
+#       timedelta(weeks=1)  # weekly
+next_date = (base + delta).isoformat()        # → "2026-06-24"
+```
+
+`timedelta` handles month rollovers, leap years, and year boundaries automatically. The fresh copy is created with `dataclasses.replace()`, which copies all fields and overrides only `completed=False`, `last_completed_date=None`, and `next_due_date=next_date`.
+
+Returns `None` for `"as-needed"` tasks — no automatic rescheduling.
+
+#### `Scheduler.reschedule_completed_tasks(pet, completed_date)`
+
+Swaps every completed recurring task on a pet for its next occurrence in one call:
+
+1. Iterates a snapshot of `pet.tasks` (so mutations mid-loop are safe)
+2. Calls `get_next_occurrence()` for each completed task
+3. Removes the completed instance with `pet.remove_task()` (clears the name slot)
+4. Appends the fresh copy directly back to `pet.tasks`
+5. Returns the list of newly created tasks so callers can display what was rescheduled
+
+`"as-needed"` tasks that return `None` from `get_next_occurrence()` are removed without replacement.
 
 ## 📸 Demo Walkthrough
 

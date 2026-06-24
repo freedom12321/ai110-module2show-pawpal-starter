@@ -66,19 +66,13 @@
 
 ---
 
-Missing Relationships
 1. Owner has no Pet reference
 An owner should hold their pet(s). Right now nothing connects them after creation — Scheduler and DailyPlan have no idea which pet the plan is for.
 
 
-# Owner should have:
-pets: List[Pet] = field(default_factory=list)
 2. Scheduler never sees Pet
 The pet's energy_level and species should influence scheduling (a high-energy dog needs a walk; a cat doesn't). The scheduler only sees TaskManager and Owner — it's blind to the pet.
 
-
-# Scheduler.__init__ should also accept:
-pet: Pet
 3. DailyPlan is context-free
 It stores tasks but has no date, no owner, no pet. You can't tell which day it's for or who it belongs to — makes multi-day history or display impossible.
 
@@ -86,28 +80,14 @@ Logic Bottlenecks
 4. sort_tasks() and generate_plan() are disconnected
 sort_tasks() returns a List[CareTask] but generate_plan() doesn't take that as input. Either generate_plan() will call sort_tasks() internally (hidden dependency) or it'll sort independently (double work). Make the flow explicit:
 
-
-def generate_plan(self) -> DailyPlan:
-    sorted_tasks = self.sort_tasks()   # call explicitly
-    ...
 5. TaskManager.get_tasks() has no filtering
 The scheduler will need to ask "give me only required tasks" or "tasks under 30 minutes" — but get_tasks() returns everything. Consider adding:
 
-
-def get_tasks(self, category: str = None, required_only: bool = False) -> List[CareTask]:
 6. CareTask.priority has no enforced range or enum
 priority: int with only a comment # 1 = highest is fragile. If one task is priority 1 and another is 100, the sort will work but the intent is ambiguous. An Enum or a validated range prevents bugs:
 
-
-from enum import IntEnum
-class Priority(IntEnum):
-    HIGH = 1
-    MEDIUM = 2
-    LOW = 3
 7. Owner.available_time is a single flat number
 A single int (minutes/day) can't represent time-of-day constraints — morning feeding, evening medication, etc. This isn't a blocker for v1, but Scheduler will hit a wall if you ever want to order tasks by time-of-day rather than just priority.
-
-
 
 ## 2. Scheduling Logic and Tradeoffs
 
@@ -122,6 +102,9 @@ A single int (minutes/day) can't represent time-of-day constraints — morning f
 - Why is that tradeoff reasonable for this scenario?
 
 ---
+for the explain_plan() function
+Performance is unchanged — both are O(n) and "\n".join() is already the right approach for building strings in Python. The gain here is purely readability.
+
 
 ## 3. AI Collaboration
 
